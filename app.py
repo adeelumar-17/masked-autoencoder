@@ -4,8 +4,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import numpy as np
+import os
+import gdown
 from PIL import Image
 import torchvision.transforms as transforms
+
+# ============================================================
+# Google Drive Model Download Config
+# ============================================================
+# HOW TO GET YOUR FILE ID:
+# Your Google Drive share link looks like:
+#   https://drive.google.com/file/d/XXXXXXXXX/view?usp=sharing
+# The XXXXXXXXX part is your FILE_ID. Paste it below.
+
+GDRIVE_FILE_ID = "1grmfto8OeeCV-EKK3SrxLhus4Bj0Ozxc"   # <-- REPLACE THIS
+MODEL_FILENAME = "mae_checkpoint_epoch_55.pth"
 
 # ============================================================
 # Model Architecture (same classes from your notebook)
@@ -269,9 +282,25 @@ st.markdown("""
 st.divider()
 
 
+def download_model_if_needed():
+    """Download model from Google Drive if not already present."""
+    if not os.path.exists(MODEL_FILENAME):
+        with st.spinner("📥 Downloading model weights from Google Drive (first time only)..."):
+            url = f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}"
+            gdown.download(url, MODEL_FILENAME, quiet=False)
+        if os.path.exists(MODEL_FILENAME):
+            st.success("✅ Model downloaded successfully!")
+        else:
+            st.error("❌ Download failed. Check your Google Drive file ID and sharing settings.")
+            st.stop()
+    return MODEL_FILENAME
+
+
 @st.cache_resource
-def load_model(model_path):
-    """Load the MAE model (cached so it only loads once)."""
+def load_model():
+    """Download (if needed) and load the MAE model (cached so it only loads once)."""
+    model_path = download_model_if_needed()
+
     model = MaskedAutoencoder(
         img_size=224, patch_size=16, in_channels=3,
         encoder_embed_dim=768, encoder_depth=12, encoder_num_heads=12,
@@ -280,9 +309,8 @@ def load_model(model_path):
     )
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    checkpoint = torch.load(model_path, map_location=device)
+    checkpoint = torch.load(model_path, map_location=device, weights_only=False)
 
-    # Handle both raw state_dict and checkpoint dict
     if 'model_state_dict' in checkpoint:
         model.load_state_dict(checkpoint['model_state_dict'])
     else:
@@ -347,12 +375,6 @@ def reconstruct(model, image_tensor, mask_ratio, device):
 with st.sidebar:
     st.markdown("### ⚙️ Configuration")
 
-    model_path = st.text_input(
-        "Model checkpoint path",
-        value="mae_checkpoint_epoch_55.pth",
-        help="Path to your .pth checkpoint file"
-    )
-
     mask_ratio = st.slider(
         "🎭 Masking Ratio (%)",
         min_value=0,
@@ -391,12 +413,9 @@ if uploaded_file is not None:
 
     # Load model
     try:
-        model, device = load_model(model_path)
+        model, device = load_model()
         device_name = "GPU 🟢" if device.type == 'cuda' else "CPU 🟡"
         st.sidebar.markdown(f"**Device:** {device_name}")
-    except FileNotFoundError:
-        st.error(f"❌ Model file `{model_path}` not found. Make sure it's in the same directory as app.py")
-        st.stop()
     except Exception as e:
         st.error(f"❌ Error loading model: {e}")
         st.stop()
