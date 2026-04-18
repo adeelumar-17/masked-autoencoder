@@ -2,6 +2,10 @@
 
 A PyTorch implementation of **Masked Autoencoders Are Scalable Vision Learners** ([He et al., CVPR 2022](https://arxiv.org/abs/2111.06377)), trained on the **Tiny-ImageNet-200** dataset as a self-supervised visual pre-training task.
 
+### Testing on MNIST dataset
+<img width="1461" height="515" alt="image" src="https://github.com/user-attachments/assets/1c735cff-6423-48d9-a733-6da84151c4ec" />
+
+
 | Item | Detail |
 |---|---|
 | **Paper** | [Masked Autoencoders Are Scalable Vision Learners](https://arxiv.org/abs/2111.06377) (He et al., 2022) |
